@@ -241,7 +241,7 @@ const stats = useMemo(() => {
                 {filteredOrders.map((order, index) => {
                   const itemsCount = (order.items || []).length;
                   const isCancelled = order.delivery_status === 'cancelled';
-
+                  const isDelivered = order.delivery_status === 'delivered';
                   return (
                     <tr key={`${order.order_id}-${index}`} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-3.5 px-4 text-gray-600">
@@ -293,15 +293,15 @@ const stats = useMemo(() => {
                           </button>
 
                           {/* แสดงปุ่มยกเลิก (XCircle) เฉพาะเมื่อสถานะยังไม่เป็น cancelled */}
-                          {!isCancelled && (
-                            <button
-                              onClick={() => handleCancelOrder(order.order_id)}
-                              className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                              title="ยกเลิกออเดอร์"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          )}
+                            {!isCancelled && !isDelivered && (
+                              <button
+                                onClick={() => handleCancelOrder(order.order_id)}
+                                className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                                title="ยกเลิกออเดอร์"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            )}
                         </div>
                       </td>
                     </tr>
