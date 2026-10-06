@@ -18,7 +18,8 @@ import {
   Bus,
   Lock,
   Settings,
-  History
+  History,
+  Home
 } from "lucide-react";
 
 // กำหนด roles ที่มีสิทธิ์เห็นแต่ละเมนู ([1] = เจ้าของ, [2] = แอดมิน)
@@ -70,6 +71,7 @@ const menuSections = [
       { title: "ข้อมูลยานพาหนะ", path: "/vehiclebrand", icon: Bus, roles: [1, 2] },
       { title: "จัดการรหัสผ่าน", path: "/security", icon: Lock, roles: [1] },
       { title: "ประวัติการสั่งซื้อ", path: "/history", icon: History, roles: [1, 2] },
+      { title: "ตำแหน่งร้านค้า", path: "/Location", icon: Home, roles: [1, 2] },
     ],
   }
 ];

@@ -15,6 +15,7 @@ import Cylinderdeposit from '../features/cylinderdeposit/page/Cylinderdeposit'
 import History from '../features/history/page/History'
 import FillingOrder from '../features/fillingOrder/page/fillingOrder'
 import Maintenance from '../features/maintenance/page/Maintenance'
+import Location from '../features/location/page/Location'
 
 const ProtectedRoute = ({ children, allowedRoles, redirectTo = "/" }) => {
     const { token, role } = useAuth()
@@ -54,7 +55,7 @@ const router = createBrowserRouter([
         ),
         children: [
             {
-                index: true, 
+                index: true,
                 element: (
                     <ProtectedRoute allowedRoles={[1]} redirectTo="/order">
                         <Dashboard />
@@ -62,11 +63,11 @@ const router = createBrowserRouter([
                 )
             },
             {
-                path: '/customer', 
+                path: '/customer',
                 element: <Customer />
             },
             {
-                path: '/employee', 
+                path: '/employee',
                 element: (
                     <ProtectedRoute allowedRoles={[1]} redirectTo="/order">
                         <Employees />
@@ -74,19 +75,19 @@ const router = createBrowserRouter([
                 )
             },
             {
-                path: '/vehicles', 
+                path: '/vehicles',
                 element: <Vehicles />
             },
             {
-                path: '/vehiclebrand', 
+                path: '/vehiclebrand',
                 element: <VehicleBrand />
             },
             {
-                path: '/product', 
+                path: '/product',
                 element: <Product />
             },
             {
-                path: '/security', 
+                path: '/security',
                 element: (
                     <ProtectedRoute allowedRoles={[1]} redirectTo="/order">
                         <Security />
@@ -94,15 +95,15 @@ const router = createBrowserRouter([
                 )
             },
             {
-                path: '/order', 
+                path: '/order',
                 element: <Order />
             },
             {
-                path: '/delivery', 
+                path: '/delivery',
                 element: <Delivery />
             },
             {
-                path: '/cylinderdeposit', 
+                path: '/cylinderdeposit',
                 element: (
                     <ProtectedRoute allowedRoles={[1]} redirectTo="/order">
                         <Cylinderdeposit />
@@ -110,11 +111,11 @@ const router = createBrowserRouter([
                 )
             },
             {
-                path: '/history', 
+                path: '/history',
                 element: <History />
             },
             {
-                path: '/FillingOrder', 
+                path: '/FillingOrder',
                 element: (
                     <ProtectedRoute allowedRoles={[1]} redirectTo="/order">
                         <FillingOrder />
@@ -122,17 +123,21 @@ const router = createBrowserRouter([
                 )
             },
             {
-                path: '/Maintenance', 
+                path: '/Maintenance',
                 element: (
                     <ProtectedRoute allowedRoles={[1]} redirectTo="/order">
                         <Maintenance />
                     </ProtectedRoute>
                 )
+            },
+            {
+                path: '/Location',
+                element: <Location />
             }
         ]
     },
     {
-        path: '*', 
+        path: '*',
         element: <Navigate to="/" replace />
     }
 ])
