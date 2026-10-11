@@ -75,7 +75,7 @@ const findOrdertodayByVehicle = (vehicle_id, callback) => {
 
     const sql = `
         select o.order_id , o.order_date ,o.total_amount ,
-	        o.delivery_status , c.customer_name ,  c.phone , c.address , c.delivery_note ,c.latitude,c.longtitude
+	        o.delivery_status , c.customer_name ,  c.phone , c.address , c.delivery_note ,c.latitude,c.longitude
                 from orders o
 		            join customers c 
 			                    on o.customer_id = c.customer_id
