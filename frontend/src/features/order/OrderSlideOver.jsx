@@ -1,12 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { X, Loader2, Plus, Trash2, ShoppingCart, ChevronDown } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { X, Loader2, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { useCustomer } from "../customers/hooks/useCustomer";
 import { useProduct } from "../product/hook/useProduct";
-
-// helper สำหรับแสดงชื่อลูกค้า
-const getCustomerName = (c) => c.name || c.customer_name || "";
-const getCustomerLabel = (c) =>
-  c.phone ? `${getCustomerName(c)} (${c.phone})` : getCustomerName(c);
 
 export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, onDelete }) {
   const { data: customers = [] } = useCustomer();
@@ -19,54 +14,26 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ===== state ของช่องเลือกลูกค้า =====
-  const [customerQuery, setCustomerQuery] = useState("");
-  const [customerOpen, setCustomerOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const customerWrapRef = useRef(null);
-  const customerInputRef = useRef(null);
-  const customerListRef = useRef(null);
-
   const totalAmount = useMemo(() => {
     return formData.items.reduce((sum, item) => {
       return sum + (Number(item.unit_price) || 0) * (Number(item.quantity) || 0);
     }, 0);
   }, [formData.items]);
 
-  // ลูกค้าที่เลือกอยู่ตอนนี้
-  const selectedCustomer = useMemo(
-    () => customers.find((c) => String(c.customer_id) === String(formData.customer_id)),
-    [customers, formData.customer_id]
-  );
-
-  // กรองลูกค้าจากชื่อหรือเบอร์ (ไม่สนขีด -)
-  const filteredCustomers = useMemo(() => {
-    const q = customerQuery.trim().toLowerCase();
-    if (!q || (selectedCustomer && customerQuery === getCustomerLabel(selectedCustomer))) {
-      return customers;
-    }
-    const digits = q.replace(/\D/g, "");
-    return customers.filter(
-      (c) =>
-        getCustomerName(c).toLowerCase().includes(q) ||
-        (digits && String(c.phone || "").replace(/\D/g, "").includes(digits))
-    );
-  }, [customerQuery, customers, selectedCustomer]);
-
   useEffect(() => {
     if (!isOpen) return;
 
     if (initialData) {
-      // หา customer_id จาก initialData (รองรับทั้งกรณีมี id และมีแค่ชื่อ)
+      // หาชื่อลูกค้าจาก initialData เพื่อนำมาแสดงผลในช่องกรอก
       const matchedCustomer = customers.find(
         (c) =>
           Number(c.customer_id) === Number(initialData.customer_id) ||
-          getCustomerName(c) === initialData.customer_name
+          (c.name || c.customer_name) === initialData.customer_name
       );
 
       const customerValue = matchedCustomer
-        ? Number(matchedCustomer.customer_id)
-        : Number(initialData.customer_id) || "";
+        ? (matchedCustomer.name || matchedCustomer.customer_name)
+        : (initialData.customer_name || initialData.customer_id || "");
 
       const mappedItems =
         initialData.items?.length > 0
@@ -97,90 +64,24 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
           : [{ product_id: "", quantity: 1, unit_price: 0 }];
 
       setFormData({ customer_id: customerValue, items: mappedItems });
-      setCustomerQuery(
-        matchedCustomer ? getCustomerLabel(matchedCustomer) : initialData.customer_name || ""
-      );
     } else {
       setFormData({
         customer_id: "",
         items: [{ product_id: "", quantity: 1, unit_price: 0 }],
       });
-      setCustomerQuery("");
     }
 
-    setCustomerOpen(false);
-    setActiveIndex(-1);
     setError(null);
   }, [initialData, isOpen, customers, products]);
 
-  // ===== ฟังก์ชันของช่องเลือกลูกค้า =====
-  const selectCustomer = (c) => {
-    setFormData((prev) => ({ ...prev, customer_id: Number(c.customer_id) }));
-    setCustomerQuery(getCustomerLabel(c));
-    setCustomerOpen(false);
-    setActiveIndex(-1);
-    setError(null);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  // ปิด dropdown: ถ้ายังไม่ได้เลือก แต่พิมพ์ชื่อตรงพอดี ให้เลือกให้อัตโนมัติ
-  const closeCustomerDropdown = () => {
-    setCustomerOpen(false);
-    if (!selectedCustomer && customerQuery.trim()) {
-      const exact = customers.find(
-        (c) => getCustomerName(c).toLowerCase() === customerQuery.trim().toLowerCase()
-      );
-      if (exact) selectCustomer(exact);
-    }
-  };
-
-  // คลิกนอกช่องลูกค้า → ปิด dropdown
-  useEffect(() => {
-    if (!customerOpen) return;
-    const handler = (e) => {
-      if (customerWrapRef.current && !customerWrapRef.current.contains(e.target)) {
-        closeCustomerDropdown();
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  });
-
-  // เลื่อนรายการที่ไฮไลต์ให้อยู่ในมุมมอง
-  useEffect(() => {
-    customerListRef.current?.children[activeIndex]?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex]);
-
-  const handleCustomerInput = (e) => {
-    setCustomerQuery(e.target.value);
-    setCustomerOpen(true);
-    setActiveIndex(0);
-    // พิมพ์ใหม่ = ยกเลิกลูกค้าที่เลือกไว้
-    if (formData.customer_id) {
-      setFormData((prev) => ({ ...prev, customer_id: "" }));
-    }
-  };
-
-  const handleCustomerKeyDown = (e) => {
-    if (!customerOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-      e.preventDefault();
-      setCustomerOpen(true);
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, filteredCustomers.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && customerOpen) {
-      e.preventDefault(); // กันฟอร์ม submit ตอนกำลังเลือก
-      if (filteredCustomers[activeIndex]) selectCustomer(filteredCustomers[activeIndex]);
-    } else if (e.key === "Escape" || e.key === "Tab") {
-      closeCustomerDropdown();
-    }
-  };
-
-  // ===== รายการสินค้า =====
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
     newItems[index][field] = value;
@@ -219,11 +120,16 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const customerIdFinal = Number(formData.customer_id);
-    if (!customerIdFinal) {
-      setError("กรุณาเลือกลูกค้าจากรายการ");
-      return;
-    }
+    // ค้นหา customer_id จากชื่อที่ผู้ใช้พิมพ์เข้ามา หรือใช้ค่าเดิมหากเป็นตัวเลข
+    const matchedCustomer = customers.find(
+      (c) =>
+        String(c.customer_id) === String(formData.customer_id) ||
+        (c.name || c.customer_name)?.toLowerCase() === String(formData.customer_id).toLowerCase()
+    );
+
+    const customerIdFinal = matchedCustomer
+      ? Number(matchedCustomer.customer_id)
+      : (Number(formData.customer_id) || 0);
 
     const payload = {
       customer_id: customerIdFinal,
@@ -289,70 +195,28 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
               </div>
             )}
 
-            {/* ช่องเลือกลูกค้า (dropdown แบบเขียนเอง แทน datalist) */}
+            {/* ช่องกรอกข้อมูลลูกค้า (เปลี่ยนจาก select เป็น input + datalist) */}
             <div>
               <label className="block text-sm font-medium text-[#4b4a4a] mb-1">
                 ลูกค้า <span className="text-red-500">*</span>
               </label>
-              <div ref={customerWrapRef} className="relative w-full">
-                <input
-                  ref={customerInputRef}
-                  type="text"
-                  required
-                  autoComplete="off"
-                  value={customerQuery}
-                  onChange={handleCustomerInput}
-                  onFocus={() => setCustomerOpen(true)}
-                  onKeyDown={handleCustomerKeyDown}
-                  placeholder="พิมพ์ชื่อหรือเลือกลูกค้า..."
-                  className="w-full pl-3.5 pr-9 py-2 text-sm bg-white border border-neutral-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] text-[#1A1A1A]"
-                />
-
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setCustomerOpen((o) => !o);
-                    customerInputRef.current?.focus();
-                  }}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-500 cursor-pointer"
-                >
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-
-                {customerOpen && (
-                  <ul
-                    ref={customerListRef}
-                    className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-neutral-400 rounded-md shadow-lg py-1"
-                  >
-                    {filteredCustomers.length === 0 ? (
-                      <li className="px-3.5 py-1.5 text-sm text-neutral-400">ไม่พบลูกค้า</li>
-                    ) : (
-                      filteredCustomers.map((c, i) => {
-                        const isActive = i === activeIndex;
-                        const isSelected =
-                          String(c.customer_id) === String(formData.customer_id);
-                        return (
-                          <li
-                            key={c.customer_id}
-                            onMouseDown={(e) => {
-                              e.preventDefault(); // กัน input blur ก่อนเลือก
-                              selectCustomer(c);
-                            }}
-                            onMouseEnter={() => setActiveIndex(i)}
-                            className={`px-3.5 py-1.5 text-sm cursor-pointer truncate ${
-                              isActive ? "bg-[#1a66d2] text-white" : "text-[#1A1A1A]"
-                            } ${isSelected ? "font-semibold" : ""}`}
-                          >
-                            {getCustomerLabel(c)}
-                          </li>
-                        );
-                      })
-                    )}
-                  </ul>
-                )}
-              </div>
+              <input
+                type="text"
+                name="customer_id"
+                required
+                value={formData.customer_id}
+                onChange={handleChange}
+                list="customer-options"
+                placeholder="พิมพ์ชื่อหรือเลือกลูกค้า..."
+                className="w-full px-3.5 py-2 text-sm bg-white border border-neutral-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] text-[#1A1A1A]"
+              />
+              <datalist id="customer-options">
+                {customers.map((c) => (
+                  <option key={c.customer_id} value={c.name || c.customer_name}>
+                    {c.phone ? `(${c.phone})` : ""}
+                  </option>
+                ))}
+              </datalist>
             </div>
 
             {/* รายการสินค้า (Items Dynamic List) */}
