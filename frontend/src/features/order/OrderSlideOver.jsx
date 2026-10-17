@@ -277,8 +277,8 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
                         </label>
                         <input
                           type="number"
-                          step="1"
-                          min="1"
+                          step="0.01"
+                          min="0.01"
                           value={item.quantity}
                           onChange={(e) =>
                             handleItemChange(index, "quantity", e.target.value)

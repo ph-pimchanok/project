@@ -144,7 +144,8 @@ export default function Product() {
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-neutral-500">สต็อกใกล้หมด (&lt; 10)</p>
+            {/* (&lt; 10)เงื่อนไขของหมด<10 */}
+            <p className="text-xs font-medium text-neutral-500">สต็อกใกล้หมด </p>
             <p className="text-2xl font-bold text-[#1A1A1A]">
               {stats.lowStockCount}{" "}
               <span className="text-xs font-normal text-neutral-500">รายการ</span>
