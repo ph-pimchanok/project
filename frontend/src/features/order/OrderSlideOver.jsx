@@ -14,6 +14,23 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // State สำหรับควบคุมการเปิด/ปิด dropdown รายชื่อลูกค้า
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+
+  // กรองรายชื่อลูกค้าตามคำค้นหาในช่อง input
+const filteredCustomers = useMemo(() => {
+    const search = (formData.customer_id || "").toLowerCase().trim();
+    
+    // ถ้ายังไม่ได้พิมพ์ หรือพิมพ์น้อยกว่า 1 ตัวอักษร จะไม่แสดงรายการขึ้นมา
+    if (search.length < 1) return []; 
+
+    return customers.filter((c) => {
+      const name = (c.name || c.customer_name || "").toLowerCase();
+      const phone = (c.phone || "").toLowerCase();
+      return name.includes(search) || phone.includes(search);
+    });
+  }, [customers, formData.customer_id]);
+
   const totalAmount = useMemo(() => {
     return formData.items.reduce((sum, item) => {
       return sum + (Number(item.unit_price) || 0) * (Number(item.quantity) || 0);
@@ -195,8 +212,8 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
               </div>
             )}
 
-            {/* ช่องกรอกข้อมูลลูกค้า (เปลี่ยนจาก select เป็น input + datalist) */}
-            <div>
+            {/* ช่องกรอกข้อมูลลูกค้า (Custom Dropdown แทน Datalist) */}
+            <div className="relative">
               <label className="block text-sm font-medium text-[#4b4a4a] mb-1">
                 ลูกค้า <span className="text-red-500">*</span>
               </label>
@@ -205,18 +222,38 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
                 name="customer_id"
                 required
                 value={formData.customer_id}
-                onChange={handleChange}
-                list="customer-options"
+                onChange={(e) => {
+                  handleChange(e);
+                  setShowCustomerDropdown(true);
+                }}
+                onFocus={() => setShowCustomerDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
                 placeholder="พิมพ์ชื่อหรือเลือกลูกค้า..."
                 className="w-full px-3.5 py-2 text-sm bg-white border border-neutral-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] text-[#1A1A1A]"
               />
-              <datalist id="customer-options">
-                {customers.map((c) => (
-                  <option key={c.customer_id} value={c.name || c.customer_name}>
-                    {c.phone ? `(${c.phone})` : ""}
-                  </option>
-                ))}
-              </datalist>
+
+              {/* Custom Dropdown สำหรับแสดงรายชื่อลูกค้า */}
+              {showCustomerDropdown && filteredCustomers.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                  {filteredCustomers.map((c) => {
+                    const customerName = c.name || c.customer_name;
+                    return (
+                      <div
+                        key={c.customer_id}
+                        onMouseDown={(e) => e.preventDefault()} // ป้องกันไม่ให้ onBlur ปิดกล่องก่อนกดเลือก
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, customer_id: customerName }));
+                          setShowCustomerDropdown(false);
+                        }}
+                        className="px-3.5 py-2.5 text-sm hover:bg-neutral-100 cursor-pointer text-[#1A1A1A] flex justify-between items-center transition-colors border-b border-neutral-100 last:border-none"
+                      >
+                        <span className="font-medium">{customerName}</span>
+                        {c.phone && <span className="text-xs text-neutral-400">({c.phone})</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* รายการสินค้า (Items Dynamic List) */}
@@ -277,8 +314,8 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
                         </label>
                         <input
                           type="number"
-                          step="0.01"
-                          min="0.01"
+                          step="1"
+                          min="1"
                           value={item.quantity}
                           onChange={(e) =>
                             handleItemChange(index, "quantity", e.target.value)
