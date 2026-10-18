@@ -52,6 +52,19 @@ export default function FillingOrder() {
     }
   };
 
+  // 💡 ฟังก์ชันแปลง Path รูปภาพ (รองรับทั้ง Cloudinary URL และ Path เก่า)
+  const getFullImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    // ถ้าเป็นลิงก์ Cloudinary เต็มรูปแบบแล้ว ให้ใช้ตรงๆ ทันที
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath;
+    }
+    // กรณีข้อมูลเก่าที่เป็น Local Path บนเซิร์ฟเวอร์
+    const cleanBaseUrl = (API_BASE_URL || "").replace(/\/+$/, "");
+    const formattedPath = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
+    return `${cleanBaseUrl}${formattedPath}`;
+  };
+
   const filteredOrders = useMemo(() => {
     if (!Array.isArray(orders)) return [];
     return orders.filter((o) => {
@@ -125,42 +138,45 @@ export default function FillingOrder() {
           </div>
         ) : filteredOrders.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
-            {filteredOrders.map((order) => (
-              <div 
-                key={order.filling_order_id} 
-                className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex flex-col"
-              >
-                <div className="p-3.5 sm:p-4 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-[#1A1A1A]">
-                    วันที่: {order.order_date?.split('T')[0]}
-                  </span>
-                  <button
-                    onClick={() => handleDelete(order.filling_order_id)}
-                    className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                    title="ลบรายการ"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* ส่วนรูปภาพ: ใช้ API_BASE_URL แทน localhost */}
+            {filteredOrders.map((order) => {
+              const imageUrl = getFullImageUrl(order.imageUrl);
+              return (
                 <div 
-                  className={`p-4 flex-1 flex items-center justify-center bg-[#FAFAFA] min-h-[150px] sm:min-h-[180px] ${order.imageUrl ? 'cursor-pointer group' : ''}`}
-                  onClick={() => order.imageUrl && window.open(`${API_BASE_URL}/${order.imageUrl}`, '_blank')}
-                  title={order.imageUrl ? "คลิกเพื่อเปิดรูปในแท็บใหม่" : ""}
+                  key={order.filling_order_id} 
+                  className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex flex-col"
                 >
-                  {order.imageUrl ? (
-                    <img 
-                      src={`${API_BASE_URL}/${order.imageUrl}`} 
-                      alt="Bill" 
-                      className="max-h-44 object-contain rounded-lg transition-transform duration-200 group-hover:scale-105"
-                    />
-                  ) : (
-                    <span className="text-xs text-neutral-400">ไม่มีรูปภาพ</span>
-                  )}
+                  <div className="p-3.5 sm:p-4 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
+                    <span className="text-[12px] font-semibold text-[#1A1A1A]">
+                      วันที่: {order.order_date?.split('T')[0]}
+                    </span>
+                    <button
+                      onClick={() => handleDelete(order.filling_order_id)}
+                      className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      title="ลบรายการ"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* ส่วนรูปภาพ: รองรับทั้ง Cloudinary และ Local Path เก่า */}
+                  <div 
+                    className={`p-4 flex-1 flex items-center justify-center bg-[#FAFAFA] min-h-[150px] sm:min-h-[180px] ${imageUrl ? 'cursor-pointer group' : ''}`}
+                    onClick={() => imageUrl && window.open(imageUrl, '_blank')}
+                    title={imageUrl ? "คลิกเพื่อเปิดรูปในแท็บใหม่" : ""}
+                  >
+                    {imageUrl ? (
+                      <img 
+                        src={imageUrl} 
+                        alt="Bill" 
+                        className="max-h-44 object-contain rounded-lg transition-transform duration-200 group-hover:scale-105"
+                      />
+                    ) : (
+                      <span className="text-xs text-neutral-400">ไม่มีรูปภาพ</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 sm:py-20 bg-white rounded-2xl border border-neutral-200 shadow-sm px-4 text-center">

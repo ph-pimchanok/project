@@ -1,13 +1,19 @@
-const fillingOrderService = require('../services/fillingorderService')
-const fs = require('fs');
-const path = require('path');
-const asyncHandler = require('../utils/asyncHandler')
-const ApiError = require('../utils/ApiError')
+const fillingOrderService = require('../services/fillingorderService');
+const asyncHandler = require('../utils/asyncHandler');
+const ApiError = require('../utils/ApiError');
+const cloudinary = require('cloudinary').v2;
+
+// ตั้งค่า Cloudinary ให้เหมือนกับฝั่ง orderController
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 exports.findAllFillingOrder = asyncHandler(async (req, res, next) => {
     const result = await fillingOrderService.findALlFillingOrder();
     res.status(200).json(result);
-})
+});
 
 exports.createFillingOrder = asyncHandler(async (req, res, next) => {
     const { order_date, imageBase64 } = req.body;
@@ -19,26 +25,23 @@ exports.createFillingOrder = asyncHandler(async (req, res, next) => {
     let imagePath = null;
 
     if (imageBase64) {
-        // 1. ตัด Data URL header ออก
-        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, 'base64');
+        try {
+            // 1. ตัด Header เก่าออก (ถ้ามี) แล้วแปลงเป็น Data URI ที่ Cloudinary รองรับแน่นอน 100%
+            const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+            const dataUri = `data:image/jpeg;base64,${cleanBase64}`;
 
-        // 2. กำหนดชื่อไฟล์และแยกโฟลเดอร์เฉพาะสำหรับบิลเติมแก๊ส (uploads/fillings)
-        const filename = `filling-${Date.now()}-${Math.round(Math.random() * 1e9)}.jpg`;
-        const uploadDir = path.join(__dirname, '../uploads/fillings'); 
+            // 2. ส่ง Data URI ขึ้น Cloudinary (เก็บไว้ในโฟลเดอร์ filling-proofs)
+            const uploadResponse = await cloudinary.uploader.upload(dataUri, {
+                folder: 'filling-proofs',
+            });
 
-        // 3. ตรวจสอบและสร้างโฟลเดอร์แยกอัตโนมัติหากยังไม่มี
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
+            // 3. ดึง Secure URL (ลิงก์เต็ม) มาเก็บบันทึก
+            imagePath = uploadResponse.secure_url;
+        } catch (error) {
+            console.error("Cloudinary Error Details:", error);
+            const errorMsg = error?.message || error?.error?.message || JSON.stringify(error);
+            return next(new ApiError(500, `ไม่สามารถอัปโหลดรูปภาพได้: ${errorMsg}`));
         }
-
-        const filePath = path.join(uploadDir, filename);
-
-        // 4. บันทึกไฟล์ลงโฟลเดอร์แยก
-        fs.writeFileSync(filePath, buffer);
-
-        // 5. บันทึก Path ลง Database ให้ชี้ไปที่โฟลเดอร์ใหม่
-        imagePath = `uploads/fillings/${filename}`;
     }
 
     const fillingData = {
@@ -48,7 +51,7 @@ exports.createFillingOrder = asyncHandler(async (req, res, next) => {
 
     const result = await fillingOrderService.createFillingOrder(fillingData);
     res.status(201).json(result);
-})
+});
 
 exports.deleteFillingOrder = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
@@ -59,4 +62,4 @@ exports.deleteFillingOrder = asyncHandler(async (req, res, next) => {
 
     const result = await fillingOrderService.deletefillingOrder(id);
     res.status(200).json(result);
-})
+});

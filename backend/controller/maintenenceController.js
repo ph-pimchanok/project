@@ -1,13 +1,19 @@
-const maintenenceService = require('../services/maintenenceService')
-const fs = require('fs');
-const path = require('path');
-const asyncHandler = require('../utils/asyncHandler')
-const ApiError = require('../utils/ApiError')
+const maintenenceService = require('../services/maintenenceService');
+const asyncHandler = require('../utils/asyncHandler');
+const ApiError = require('../utils/ApiError');
+const cloudinary = require('cloudinary').v2;
+
+// ตั้งค่า Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 exports.findAllMaintenance = asyncHandler(async (req, res, next) => {
     const result = await maintenenceService.findAllMaintenance();
     res.status(200).json(result);
-})
+});
 
 exports.createMaintenance = asyncHandler(async (req, res, next) => {
     const { received_date, imageBase64 } = req.body;
@@ -19,26 +25,23 @@ exports.createMaintenance = asyncHandler(async (req, res, next) => {
     let imagePath = null;
 
     if (imageBase64) {
+        try {
+            // 1. ทำความสะอาด Base64 และแปลงเป็น Data URI
+            const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+            const dataUri = `data:image/jpeg;base64,${cleanBase64}`;
 
-        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, 'base64');
+            // 2. อัปโหลดรูปภาพขึ้น Cloudinary (เก็บไว้ในโฟลเดอร์ maintenance-proofs)
+            const uploadResponse = await cloudinary.uploader.upload(dataUri, {
+                folder: 'maintenance-proofs',
+            });
 
-        // 2. กำหนดชื่อไฟล์และโฟลเดอร์สำหรับเก็บรูปซ่อมบำรุง (uploads/maintenance)
-        const filename = `maintenance-${Date.now()}-${Math.round(Math.random() * 1e9)}.jpg`;
-        const uploadDir = path.join(__dirname, '../uploads/maintenance'); 
-
-        // 3. ตรวจสอบและสร้างโฟลเดอร์อัตโนมัติหากยังไม่มี
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
+            // 3. ดึง Secure URL (ลิงก์เต็ม) มาใช้งาน
+            imagePath = uploadResponse.secure_url;
+        } catch (error) {
+            console.error("Cloudinary Error Details:", error);
+            const errorMsg = error?.message || error?.error?.message || JSON.stringify(error);
+            return next(new ApiError(500, `ไม่สามารถอัปโหลดรูปภาพได้: ${errorMsg}`));
         }
-
-        const filePath = path.join(uploadDir, filename);
-
-        // 4. บันทึกไฟล์ลงในโฟลเดอร์
-        fs.writeFileSync(filePath, buffer);
-
-        // 5. กำหนด Path ที่จะบันทึกลง Database
-        imagePath = `uploads/maintenance/${filename}`;
     }
 
     const maintenanceData = {
@@ -48,7 +51,7 @@ exports.createMaintenance = asyncHandler(async (req, res, next) => {
 
     const result = await maintenenceService.createMaintenance(maintenanceData);
     res.status(201).json(result);
-})
+});
 
 exports.deleteMaintenance = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
@@ -59,4 +62,4 @@ exports.deleteMaintenance = asyncHandler(async (req, res, next) => {
 
     const result = await maintenenceService.deleteMaintenance(id);
     res.status(200).json(result);
-})
+});
