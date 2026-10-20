@@ -18,7 +18,7 @@ export default function MaintenanceSlideOver({
   error,
 }) {
   const [receivedDate, setReceivedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toLocaleDateString("sv-SE")
   );
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);

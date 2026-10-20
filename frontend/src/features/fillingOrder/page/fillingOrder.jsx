@@ -69,7 +69,7 @@ export default function FillingOrder() {
     if (!Array.isArray(orders)) return [];
     return orders.filter((o) => {
       if (!selectedDate) return true;
-      const orderDateOnly = o.order_date ? o.order_date.split('T')[0] : "";
+      const orderDateOnly = o.order_date ? o.order_date.slice(0, 10) : "";
       return orderDateOnly === selectedDate;
     });
   }, [orders, selectedDate]);
@@ -146,7 +146,7 @@ export default function FillingOrder() {
                   className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex flex-col"
                 >
                   <div className="p-3.5 sm:p-4 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
-                    <span className="text-[12px] font-semibold text-[#1A1A1A]">
+                    <span className="text-[12px] font-semibold text-[#1A1A1A] whitespace-nowrap">
                       วันที่: {order.order_date?.split('T')[0]}
                     </span>
                     <button

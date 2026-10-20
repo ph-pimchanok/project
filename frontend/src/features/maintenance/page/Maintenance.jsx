@@ -79,7 +79,7 @@ export default function Maintenance() {
     if (!Array.isArray(maintenances)) return [];
     return maintenances.filter((item) => {
       if (!selectedDate) return true;
-      const itemDateOnly = item.received_date ? item.received_date.split("T")[0] : "";
+      const itemDateOnly = item.received_date ? item.received_date.slice(0, 10) : "";
       return itemDateOnly === selectedDate;
     });
   }, [maintenances, selectedDate]);
@@ -162,7 +162,7 @@ export default function Maintenance() {
                 >
                   <div className="p-3.5 sm:p-4 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
                     <span className="text-[12px] font-semibold text-[#1A1A1A]">
-                      วันที่: {item.received_date?.split("T")[0]}
+                      วันที่: {item.received_date?.slice(0, 10)}
                     </span>
                     <button
                       onClick={() => handleDelete(item.maintenance_id)}

@@ -65,8 +65,9 @@ export default function History() {
         o.payment_method?.toLowerCase().includes(term);
 
       let matchesDate = true;
+      // การเลือกวัน
       if (selectedDate) {
-        const orderDateOnly = o.order_date ? o.order_date.split("T")[0] : "";
+        const orderDateOnly = o.order_date ? o.order_date.slice(0, 10) : "";
         matchesDate = orderDateOnly === selectedDate;
       }
 

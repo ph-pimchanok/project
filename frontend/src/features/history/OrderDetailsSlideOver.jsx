@@ -67,7 +67,7 @@ export default function OrderDetailsSlideOver({ isOpen, onClose, order }) {
             <p className="text-xs text-neutral-500 mt-0.5">
               วันที่สั่งซื้อ:{" "}
               {safeOrder.order_date
-                ? new Date(safeOrder.order_date).toLocaleString("th-TH")
+                ? new Date(safeOrder.order_date.replace(" ","T")).toLocaleString("th-TH")
                 : "-"}
             </p>
           </div>
