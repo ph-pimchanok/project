@@ -74,7 +74,7 @@ const findAlldashboard = async () => {
         }));
 
         // วันที่ปัจจุบันรูปแบบ YYYY-MM-DD
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
 
         // ประกอบร่างข้อมูลส่งกลับ Controller ตามโครงสร้าง JSON ที่ต้องการ
         return {
@@ -123,8 +123,8 @@ const findDashboard2 = async (year, month) => {
 
         const weeklyBreakdown = weeklyResult.map(row => ({
             week: row.week,
-            start_date: row.start_date ? row.start_date.toISOString().split('T')[0] : null,
-            end_date: row.end_date ? row.end_date.toISOString().split('T')[0] : null,
+            start_date: row.start_date ? String(row.start_date).slice(0, 10) : null, 
+            end_date: row.end_date ? String(row.end_date).slice(0, 10) : null,  
             revenue: parseFloat(row.revenue || 0),
             profit: parseFloat(row.profit || 0)
         }));
