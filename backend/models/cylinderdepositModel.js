@@ -13,7 +13,8 @@ const findAllCylinderdeposit = async(callback)=>{
 	join customers c
 		on cd.customer_id = c.customer_id
 			join products p
-				on cd.product_id = p.product_id`
+				on cd.product_id = p.product_id
+                where p.category like '%gas%'`
     db.query(sql,callback);
 }
 

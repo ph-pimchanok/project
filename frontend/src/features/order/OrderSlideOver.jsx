@@ -7,6 +7,7 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
   const { data: customers = [] } = useCustomer();
   const { data: products = [] } = useProduct();
 
+//สร้างเก็บเป็นบล็อคๆarayไว้เก็บform
   const [formData, setFormData] = useState({
     customer_id: "",
     items: [{ product_id: "", quantity: 1, unit_price: 0 }],
@@ -14,7 +15,7 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // State สำหรับควบคุมการเปิด/ปิด dropdown รายชื่อลูกค้า
+  // State ควบคุมการเปิด/ปิด dropdown รายชื่อลูกค้า
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   // กรองรายชื่อลูกค้าตามคำค้นหาในช่อง input
@@ -31,12 +32,14 @@ const filteredCustomers = useMemo(() => {
     });
   }, [customers, formData.customer_id]);
 
+  //คำนวนราคารวมreduceวนลูปเก็บเป็นอเรย์ดึงการคำนวนมาจากfromdataitem
   const totalAmount = useMemo(() => {
     return formData.items.reduce((sum, item) => {
       return sum + (Number(item.unit_price) || 0) * (Number(item.quantity) || 0);
     }, 0);
   }, [formData.items]);
 
+// 
   useEffect(() => {
     if (!isOpen) return;
 
