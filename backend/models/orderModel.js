@@ -97,11 +97,11 @@ const findOneOrder = (order_id, callback) => {
     db.query(sql, order_id, callback)
 }
 
-const uploadImage = (order_id, imagePath, callback) => {
+const uploadImage = (order_id , imagePath , payment_method, callback) => {
 
-    const sql = `update orders set imageUrl = ? where order_id = ?`
+    const sql = `update orders set imageUrl = ?, payment_method = ? where order_id = ?`
 
-    db.query(sql, [imagePath, order_id], callback)
+    db.query(sql , [imagePath, payment_method, order_id]  , callback)
 }
 
 const cancelOrder = (order_id, callback) => {

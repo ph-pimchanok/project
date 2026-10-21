@@ -4,16 +4,16 @@ const ApiError = require('../utils/ApiError');
 const cloudinary = require('cloudinary').v2;
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-exports.createOrders = asyncHandler(async(req, res, next) => {
+exports.createOrders = asyncHandler(async (req, res, next) => {
     const orderData = req.body;
 
     Object.keys(orderData).forEach(key => {
-        if(orderData[key] === undefined || orderData[key] === null){
+        if (orderData[key] === undefined || orderData[key] === null) {
             delete orderData[key];
         }
     });
@@ -22,50 +22,50 @@ exports.createOrders = asyncHandler(async(req, res, next) => {
     res.status(201).json(result);
 });
 
-exports.findAllOrders = asyncHandler(async(req, res, next) => {
+exports.findAllOrders = asyncHandler(async (req, res, next) => {
     const results = await orderService.getAllOrder();
     res.status(200).json(results);
 });
 
-exports.findOrderbyStatus = asyncHandler(async(req, res, next) => {
+exports.findOrderbyStatus = asyncHandler(async (req, res, next) => {
     const results = await orderService.findOrderbyStatus();
     res.status(200).json(results);
 });
 
 exports.deleteOrders = asyncHandler(async (req, res, next) => {
     const id = req.params.id;
-    
-    if(!id) { return next(new ApiError(400, "Missing required field: id")); }
+
+    if (!id) { return next(new ApiError(400, "Missing required field: id")); }
 
     const result = await orderService.deleteOrder(id);
     res.status(200).json(result);
 });
 
 exports.updateOrderVehicle = asyncHandler(async (req, res, next) => {
-  const { order_ids, vehicle_id } = req.body;
+    const { order_ids, vehicle_id } = req.body;
 
-  if (!order_ids || !vehicle_id || !Array.isArray(order_ids) || order_ids.length === 0) {
-    return next(new ApiError(400, "Missing or invalid required fields: order_ids (array) or vehicle_id"));
-  }
+    if (!order_ids || !vehicle_id || !Array.isArray(order_ids) || order_ids.length === 0) {
+        return next(new ApiError(400, "Missing or invalid required fields: order_ids (array) or vehicle_id"));
+    }
 
-  const result = await orderService.updateOrderVehicle(order_ids, vehicle_id);
+    const result = await orderService.updateOrderVehicle(order_ids, vehicle_id);
 
-  const io = req.app.get('io');
-  if (io) {
-    io.emit('order_delivery', {
-      vehicle_id: Number(vehicle_id),
-      order_ids: order_ids,
-      status: 'delivering',
-    });
-  }
+    const io = req.app.get('io');
+    if (io) {
+        io.emit('order_delivery', {
+            vehicle_id: Number(vehicle_id),
+            order_ids: order_ids,
+            status: 'delivering',
+        });
+    }
 
-  res.status(200).json(result);
+    res.status(200).json(result);
 });
 
-exports.findOrdertodayByVehicle = asyncHandler(async(req, res, next) => {
+exports.findOrdertodayByVehicle = asyncHandler(async (req, res, next) => {
     const id = req.params.id;
 
-    if(!id) { return next(new ApiError(400, "vehicle_id is required")); }
+    if (!id) { return next(new ApiError(400, "vehicle_id is required")); }
 
     const results = await orderService.findOrdertodayByVehicle(id);
     res.status(200).json(results);
@@ -74,22 +74,24 @@ exports.findOrdertodayByVehicle = asyncHandler(async(req, res, next) => {
 exports.findOneOrder = asyncHandler(async (req, res, next) => {
     const id = req.params.id;
 
-    if(!id) { return next(new ApiError(400, "order_id is required")); }
+    if (!id) { return next(new ApiError(400, "order_id is required")); }
 
     const result = await orderService.findOneOrder(id);
     res.status(200).json(result);
 });
 
 exports.uploadImage = asyncHandler(async (req, res, next) => {
+
     const { order_id } = req.params;
+    const { payment_method } = req.body;
     const { imageBase64 } = req.body;
 
-    if (!order_id || !imageBase64) {
+    if (!order_id || !imageBase64 || !payment_method) {
         return next(new ApiError(400, "order_id and imageBase64 are required"));
     }
 
     try {
-        // 1. ตัด Header เก่าออก (ถ้ามี) แล้วแปลงเป็น Data URI ที่ Cloudinary รองรับแน่นอน 100%
+
         const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
         const dataUri = `data:image/jpeg;base64,${cleanBase64}`;
 
@@ -99,7 +101,7 @@ exports.uploadImage = asyncHandler(async (req, res, next) => {
         });
 
         const imagePath = uploadResponse.secure_url;
-        const result = await orderService.uploadImage(order_id, imagePath);
+        const result = await orderService.uploadImage(order_id, imagePath, payment_method);
 
         const io = req.app.get('io');
         if (io) {
@@ -116,11 +118,11 @@ exports.uploadImage = asyncHandler(async (req, res, next) => {
         return next(new ApiError(500, `ไม่สามารถอัปโหลดรูปภาพได้: ${errorMsg}`));
     }
 });
-    
+
 exports.cancelOrder = asyncHandler(async (req, res, next) => {
     const order_id = req.params.id;
 
-    if(!order_id) { return next(new ApiError(400, "order_id is required")); }
+    if (!order_id) { return next(new ApiError(400, "order_id is required")); }
 
     const result = await orderService.cancelOrder(order_id);
 

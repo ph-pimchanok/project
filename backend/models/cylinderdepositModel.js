@@ -20,7 +20,7 @@ const findAllCylinderdeposit = async(callback)=>{
 
 const updateCylinderdeposit =async(deposit_id,qty_return,callback)=>{
     const sql=`
-    update cylinder_deposit 
+    update cylinder_deposit
     set qty_return =?
     where deposit_id = ?
     `

@@ -260,17 +260,17 @@ const findOneOrder = async(order_id) => {
     })
 }
 
-const uploadImage = async(order_id , imagePath) => {
+const uploadImage = async(order_id , imagePath , payment_method) => {
 
     return new Promise((success , fail) => {
-        orderModel.uploadImage(order_id , imagePath,(err , result) => {
+        orderModel.uploadImage(order_id , imagePath, payment_method, (err , result) => {
 
             if(err) {return fail(err)}
 
             orderModel.updateOrderStatus(order_id , "delivered" ,(err , result) => {
 
                 if(err){return fail(err)}
-                
+
                 success({
                     success: true,
                     message: "upload image successfully"
