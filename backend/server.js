@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
     })
 })
 
-const port = process.env.port || 5000
+const port = process.env.PORT || 5000
 
 // 4. เปลี่ยนจาก app.listen มาเป็น server.listen แทน
 server.listen(port, () => {
