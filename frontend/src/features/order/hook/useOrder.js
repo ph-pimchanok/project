@@ -32,6 +32,8 @@ export const useOrder = () => {
       setLoading(true);
       setError(null);
 
+      console.log("Creating order with data:", orderData); // Debug log
+
       const response = await axiosInstance.post("/order", orderData);
 
       if (response.data.success) {
@@ -45,9 +47,13 @@ export const useOrder = () => {
 
       return response.data;
     } catch (err) {
-      const message = err.response?.data?.message || err.message;
+      if (err.response && err.response.data) {
+        return err.response.data;
+      }
+
+      const message = err.message;
       setError(message);
-      throw err;
+      return { success: false, message: message };
     } finally {
       setLoading(false);
     }
@@ -71,7 +77,7 @@ export const useOrder = () => {
             };
           }
           return order;
-        })
+        }),
       );
 
       return response.data;
@@ -95,8 +101,8 @@ export const useOrder = () => {
         prevData.map((order) =>
           Number(order.order_id) === Number(orderId)
             ? { ...order, delivery_status: "cancelled" }
-            : order
-        )
+            : order,
+        ),
       );
 
       return response.data;
@@ -131,8 +137,8 @@ export const useOrder = () => {
         prevData.map((order) =>
           order.order_id === updatedOrder.order_id
             ? { ...order, delivery_status: updatedOrder.status }
-            : order
-        )
+            : order,
+        ),
       );
     });
 

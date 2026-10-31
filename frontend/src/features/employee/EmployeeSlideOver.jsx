@@ -56,7 +56,7 @@ export default function EmployeeSlideOver({ isOpen, onClose, onSave, initialData
 
       setFormData({
         name: initialData.name || "",
-        phone: initialData.phone || "",
+        phone: initialData.phone ? String(initialData.phone).replace(/\D/g, "").slice(0, 10) : "",
         email: initialData.email || "",
         role_id: getRoleId(rawRole),
         vehicle_id: matchedVehicleId,
@@ -77,6 +77,14 @@ export default function EmployeeSlideOver({ isOpen, onClose, onSave, initialData
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // กรองเบอร์โทรศัพท์ให้รับเฉพาะตัวเลข และจำกัดความยาวไม่เกิน 10 หลัก (ไม่มีขีด)
+    if (name === "phone") {
+      const numericValue = value.replace(/\D/g, "").slice(0, 10);
+      setFormData((prev) => ({ ...prev, phone: numericValue }));
+      return;
+    }
+
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
       if (name === "role_id" && value !== "3") {
@@ -88,8 +96,16 @@ export default function EmployeeSlideOver({ isOpen, onClose, onSave, initialData
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    // ตรวจสอบความถูกต้องของเบอร์โทรศัพท์ (ต้องเป็นตัวเลข 10 หลักเป๊ะๆ ไม่มีขีด)
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setError("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง เป็นตัวเลข 10 หลัก (ไม่มีขีด)");
+      return;
+    }
+
+    setLoading(true);
 
     const payload = {
       name: formData.name,

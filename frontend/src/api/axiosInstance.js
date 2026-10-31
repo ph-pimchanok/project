@@ -19,3 +19,5 @@ axiosInstance.interceptors.request.use((config) => {
 });
 
 export default axiosInstance;
+// เป็น ตัวกลางสำหรับส่ง Request จาก Frontend ไปยัง Backend API โดยตั้งค่า URL 
+// กลาง ระยะเวลารอ การส่งข้อมูล JSON และแนบ Token สำหรับยืนยันตัวตนโดยอัตโนมัติ

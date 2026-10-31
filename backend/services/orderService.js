@@ -4,6 +4,7 @@ const items_order = require('../models/order_itemModel')
 const productModel = require('../models/productModel')
 const historyModel = require('../models/historyOrder')
 const employeeModel = require('../models/employeeModel')
+const customerModel = require('../models/customerModel')
 
 const vehicleService = require('../services/vehicleService')
 
@@ -18,7 +19,6 @@ const createOrder = async (orderdata) => {
             if (stockError) { return fail(stockError); }
 
             if (!stockCheck.sufficient) {
-
                 return success({
                     success: false,
                     message: "Insufficient stock for one or more items",
@@ -26,78 +26,87 @@ const createOrder = async (orderdata) => {
                 });
             }
 
-            orderModel.createOrder(mainOrderData, (error, results) => {
-                if (error) { return fail(error); }
+            const customer_id = mainOrderData.customer_id;
 
-                const order_id = results.insertId || results.order_id;
+            // 1. ตรวจสอบว่าลูกค้ามีออเดอร์ค้างอยู่หรือไม่
+            customerModel.findCustomerID(customer_id, (err, result) => {
+                if (err) { return fail(err); }
 
-                if (!order_id) {
-                    return fail(new Error("Cannot retrieved order_id, Insert might have failed."));
+                // ถ้ามีออเดอร์ที่กำลังจัดส่งหรือรอดำเนินการอยู่ ให้ปฏิเสธการสร้างออเดอร์ใหม่
+                if (result && result.length > 0) {
+                    return fail(new ApiError(400, "ลูกค้ารายนี้มีออเดอร์ที่ยังจัดส่งไม่เสร็จหรือรอดำเนินการอยู่"));
                 }
 
-                items_order.Createitem_order(order_id, items, (error, results) => {
+                // 2. ถ้าไม่มีออเดอร์ค้าง ดำเนินการสร้างออเดอร์ใหม่ต่อ
+                orderModel.createOrder(mainOrderData, (error, results) => {
                     if (error) { return fail(error); }
 
-                    productModel.updateStock(items, (error) => {
+                    const order_id = results.insertId || results.order_id;
+
+                    if (!order_id) {
+                        return fail(new Error("Cannot retrieved order_id, Insert might have failed."));
+                    }
+
+                    items_order.Createitem_order(order_id, items, (error, results) => {
                         if (error) { return fail(error); }
 
-                        const depositData = items.map((item) => [
-                            mainOrderData.customer_id,
-                            item.product_id,
-                            order_id,
-                            item.quantity || item.qty_out || item.qty, 
-                            0,   
-                            new Date()  
-                        ]);
+                        productModel.updateStock(items, (error) => {
+                            if (error) { return fail(error); }
 
-                        cylinderDepositModel.bulkCreateDeposite(depositData, async (depositError) => {
-                            if (depositError) { return fail(depositError); }
+                            const depositData = items.map((item) => [
+                                mainOrderData.customer_id,
+                                item.product_id,
+                                order_id,
+                                item.quantity || item.qty_out || item.qty, 
+                                0,   
+                                new Date()  
+                            ]);
 
-                            try {
+                            cylinderDepositModel.bulkCreateDeposite(depositData, async (depositError) => {
+                                if (depositError) { return fail(depositError); }
 
-                                const itemsWithNames = await Promise.all(
-                                    items.map((item) => {
-                                        return new Promise((resolve) => {
+                                try {
+                                    const itemsWithNames = await Promise.all(
+                                        items.map((item) => {
+                                            return new Promise((resolve) => {
+                                                productModel.findProductById(item.product_id, (err, prodResult) => {
+                                                    if (err) { return fail(err); }
 
-                                            productModel.findProductById(item.product_id, (err, prodResult) => {
+                                                    const productName = prodResult?.[0]?.product_name;
+                                                    const costPrice = prodResult?.[0]?.cost_price || 0;
+                                                    const qty = item.quantity || item.qty_out || item.qty;
 
-                                                if(err) {return fail(err)}
-
-                                                const productName = prodResult?.[0]?.product_name;
-                                                const costPrice = prodResult?.[0]?.cost_price || 0;
-                                                const qty = item.quantity || item.qty_out || item.qty;
-
-                                                resolve({
-                                                    product_name: productName,
-                                                    quantity: qty,
-                                                    unit_price: item.unit_price,
-                                                    cost_price: costPrice
+                                                    resolve({
+                                                        product_name: productName,
+                                                        quantity: qty,
+                                                        unit_price: item.unit_price,
+                                                        cost_price: costPrice
+                                                    });
                                                 });
                                             });
+                                        })
+                                    );
+
+                                    const fulfillmentLogData = {
+                                        order_id: order_id,
+                                        customer_id: mainOrderData.customer_id,
+                                        employee_name: null, 
+                                        items_snapshot: JSON.stringify(itemsWithNames),
+                                        delivery_date: new Date()
+                                    };
+
+                                    historyModel.createFulfillmentLog(fulfillmentLogData, (logError) => {
+                                        if (logError) { return fail(logError); }
+
+                                        success({
+                                            success: true,
+                                            message: "create successfully, stock updated, cylinder deposit recorded, and fulfillment log saved"
                                         });
-                                    })
-                                );
-
-                                const fulfillmentLogData = {
-                                    order_id: order_id,
-                                    customer_id: mainOrderData.customer_id,
-                                    employee_name: null, 
-                                    items_snapshot: JSON.stringify(itemsWithNames), // แปลงเป็น JSON เก็บลง DB
-                                    delivery_date: new Date()
-                                };
-
-                                historyModel.createFulfillmentLog(fulfillmentLogData, (logError) => {
-                                    if (logError) { return fail(logError); }
-
-                                    success({
-                                        success: true,
-                                        message: "create successfully, stock updated, cylinder deposit recorded, and fulfillment log saved"
                                     });
-
-                                });
-                            } catch (asyncErr) {
-                                fail(asyncErr);
-                            }
+                                } catch (asyncErr) {
+                                    fail(asyncErr);
+                                }
+                            });
                         });
                     });
                 });
@@ -259,7 +268,7 @@ const findOneOrder = async(order_id) => {
         })
     })
 }
-
+// /---------------------------------------------------------------------------
 const uploadImage = async(order_id , imagePath , payment_method) => {
 
     return new Promise((success , fail) => {
@@ -270,7 +279,7 @@ const uploadImage = async(order_id , imagePath , payment_method) => {
             orderModel.updateOrderStatus(order_id , "delivered" ,(err , result) => {
 
                 if(err){return fail(err)}
-
+                
                 success({
                     success: true,
                     message: "upload image successfully"
@@ -282,13 +291,18 @@ const uploadImage = async(order_id , imagePath , payment_method) => {
     })
 }
 
-const cancelOrder = async(order_id) => {
+// ---
 
-    return new Promise((success , fail) => {
+const cancelOrder = async (order_id) => {
+    return new Promise((success, fail) => {
+        
+        orderModel.cancelOrder(order_id, (err, results) => {
 
-        orderModel.cancelOrder(order_id , (err , results) =>{
+            if (err) return fail(err);
 
-            if(err) {return fail(err)}
+            items_order.returnStock(order_id, (err, restockResult) => {
+
+                if (err) return fail(err);
 
                 cylinderDepositModel.deleteCylinderdeposit(order_id , (err , result) => {
 
@@ -325,9 +339,10 @@ const cancelOrder = async(order_id) => {
                         })
                     })
                 })
-        })
-    })
-}
+            });
+        });
+    });
+};
 
 module.exports={
     createOrder,

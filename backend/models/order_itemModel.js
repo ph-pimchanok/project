@@ -63,6 +63,50 @@ const findOneOrder_Item = (order_id , callback) => {
     db.query(sql , order_id ,callback)
 }
 
+// ----
+const returnStock = (order_id, callback) => {
+    // 1. แก้ SQL ให้ถูกต้อง (เลือก product_id และ quantity)
+    const findSql = `
+        select product_id, quantity from order_items where order_id = ?;
+    `;
+    
+    db.query(findSql, [order_id], (err, items) => {
+        if (err) return callback(err);
+
+        if (!items || items.length === 0) {
+            return callback(null, { message: 'No items to restock' });
+        }
+
+        let completed = 0;
+        let hasError = false;
+
+        // 2. วนลูปคืนสต็อกสินค้าทีละรายการ
+        items.forEach((item) => {
+            const updateStockSql = `
+                update products 
+                set stock_qty = stock_qty + ? 
+                where product_id = ?;
+            `;
+            
+            // 3. เปลี่ยนจาก item.item_id เป็น item.product_id ให้ตรงกัน
+            db.query(updateStockSql, [item.quantity, item.product_id], (err) => {
+                if (hasError) return;
+                
+                if (err) {
+                    hasError = true;
+                    return callback(err);
+                }
+
+                completed++;
+
+                // 4. ถ้าวนครบทุกตัวแล้ว แจ้งว่าสำเร็จ
+                if (completed === items.length) {
+                    callback(null, { message: 'Return stock success' });
+                }
+            });
+        });
+    });
+};
 
 module.exports = {
     Createitem_order,
@@ -71,6 +115,6 @@ module.exports = {
     findAllitem,
     deleteOrder_item,
     findAllbyOrder_id,
-    findOneOrder_Item
-
+    findOneOrder_Item,
+    returnStock
 }

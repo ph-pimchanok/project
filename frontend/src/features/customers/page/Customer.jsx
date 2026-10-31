@@ -14,32 +14,43 @@ export default function Customer() {
     deleteCustomer,
   } = useCustomer()
 
+  // เก็บ ID ของลูกค้าที่กำลังดำเนินการลบ
+  // ใช้ควบคุมไอคอนหมุนและปิดใช้งานปุ่มลบของแถวนั้น
   const [actionLoading, setActionLoading] = useState(null)
+
+  // เก็บสถานะเปิดหรือปิดฟอร์มเพิ่ม/แก้ไขลูกค้า
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false)
+
+  // เก็บข้อมูลลูกค้าที่เลือกแก้ไข
+  // null หมายถึงยังไม่ได้เลือกลูกค้า หรือกำลังจะเพิ่มลูกค้าใหม่
   const [selectedCustomer, setSelectedCustomer] = useState(null)
+
+  // เก็บข้อความที่ผู้ใช้พิมพ์ในช่องค้นหา
   const [searchTerm, setSearchTerm] = useState('')
 
+  // คำนวณรายชื่อลูกค้าที่ตรงกับคำค้นหา
   const filteredCustomers = useMemo(() => {
     if (!searchTerm.trim()) return customers
-    const term = searchTerm.toLowerCase()
+    const term = searchTerm.toLowerCase() //ให้การค้นหาชื่อและที่อยู่ภาษาอังกฤษไม่สนใจตัวพิมพ์เล็ก/ใหญ่
     return customers.filter(
+      // วนตรวจสอบ
       (c) =>
         c.customer_name?.toLowerCase().includes(term) ||
         c.phone?.includes(term) ||
         c.address?.toLowerCase().includes(term)
     )
   }, [customers, searchTerm])
-
+//ปิดฟอร์มเพิ่มและแก้ไขลูกค้า
   const handleOpenAdd = () => {
     setSelectedCustomer(null)
     setIsSlideOverOpen(true)
   }
-
   const handleOpenEdit = (customer) => {
+     // เก็บข้อมูลลูกค้าที่ผู้ใช้เลือก เพื่อส่งให้ฟอร์มแสดงข้อมูลเดิม
     setSelectedCustomer(customer)
     setIsSlideOverOpen(true)
   }
-
+//บันทึกข้อมูลลูกค้า
 const handleSaveCustomer = async (formData) => {
     if (selectedCustomer) {
       await updateCustomer(selectedCustomer.customer_id, formData)
@@ -49,8 +60,8 @@ const handleSaveCustomer = async (formData) => {
       toast.success('เพิ่มลูกค้าใหม่สำเร็จ')
     }
   }
-
-  const handleDelete = async (id, name) => {
+// ลบข้อมูลลูกค้า
+const handleDelete = async (id, name) => {
     if (!window.confirm(`คุณต้องการลบข้อมูลลูกค้า "${name}" ใช่หรือไม่?`)) return
 
     try {
@@ -78,7 +89,7 @@ const handleSaveCustomer = async (formData) => {
           </div>
           <p className="text-sm text-neutral-500 mt-1">จัดการข้อมูลรายชื่อลูกค้าและรายละเอียดการจัดส่งสินค้า</p>
         </div>
-
+        {/* เมื่อกดปุ่ม จะเรียก handleOpenAdd เพื่อเปิดฟอร์มเพิ่มลูกค้า */}
         <button
           type="button"
           onClick={handleOpenAdd}
@@ -169,10 +180,12 @@ const handleSaveCustomer = async (formData) => {
                   <th className="py-3.5 px-4 text-center">จัดการ</th>
                 </tr>
               </thead>
+              {/* {ส่วนตารางข้อมูลลูกค้า} */}
               <tbody className="divide-y divide-neutral-200 text-sm text-[#1A1A1A]">
                 {filteredCustomers.map((customer, index) => (
                   <tr key={customer.customer_id} className="hover:bg-neutral-50/60 transition-colors">
-                    <td className="py-3.5 px-4 text-neutral-500">{index + 1}</td>
+                    {/* ใช้ customer_id เป็น Key เพื่อให้ React แยกแต่ละแถวได้ */}
+                    <td className="py-3.5 px-4 text-neutral-500">{index + 1}</td>  {/* ลำดับของลูกค้าในรายการที่แสดง */}
                     <td className="py-3.5 px-4 font-medium">{customer.customer_name}</td>
                     <td className="py-3.5 px-4 text-neutral-600">{customer.phone}</td>
                     <td className="py-3.5 px-4 text-neutral-600 max-w-xs truncate" title={customer.address}>
@@ -228,7 +241,8 @@ const handleSaveCustomer = async (formData) => {
         )}
       </div>
 
-      <CustomerSlideOver
+      <CustomerSlideOver  
+      // ส่วนเชื่อมต่อกับฟอร์ม
         isOpen={isSlideOverOpen}
         onClose={() => setIsSlideOverOpen(false)}
         onSave={handleSaveCustomer}

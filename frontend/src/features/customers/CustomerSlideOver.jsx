@@ -20,7 +20,7 @@ export default function CustomerSlideOver({ isOpen, onClose, onSave, initialData
     if (initialData) {
       setFormData({
         customer_name: initialData.customer_name || '',
-        phone: initialData.phone || '',
+        phone: initialData.phone ? String(initialData.phone).replace(/\D/g, "").slice(0, 10) : '',
         address: initialData.address || '',
         delivery_note: initialData.delivery_note || '',
         latitude: initialData.latitude || '',
@@ -43,6 +43,14 @@ export default function CustomerSlideOver({ isOpen, onClose, onSave, initialData
 
   const handleChange = (e) => {
     const { name, value } = e.target
+
+    // กรองเบอร์โทรศัพท์ให้รับเฉพาะตัวเลข และจำกัดความยาวไม่เกิน 10 หลัก (ไม่มีขีด)
+    if (name === "phone") {
+      const numericValue = value.replace(/\D/g, "").slice(0, 10)
+      setFormData((prev) => ({ ...prev, phone: numericValue }))
+      return
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -66,8 +74,16 @@ export default function CustomerSlideOver({ isOpen, onClose, onSave, initialData
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
     setError(null)
+
+    // ตรวจสอบความถูกต้องของเบอร์โทรศัพท์ (ต้องเป็นตัวเลข 10 หลักเป๊ะๆ ไม่มีขีด)
+    const phoneRegex = /^\d{10}$/
+    if (!phoneRegex.test(formData.phone)) {
+      setError("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง เป็นตัวเลข 10 หลัก (ไม่มีขีด)")
+      return
+    }
+
+    setLoading(true)
 
     try {
       // ส่งข้อมูลก้อนเดิมออกไปหลังบ้านตามปกติ (ไม่ต้องแก้หลังบ้าน)
@@ -135,10 +151,12 @@ export default function CustomerSlideOver({ isOpen, onClose, onSave, initialData
                 เบอร์โทรศัพท์ <span className="text-red-500">*</span>
               </label>
               <input
-                type="text"
+                type="tel"
                 name="phone"
                 required
-                placeholder="เช่น 089-111-2222"
+                maxLength={10}
+                inputMode="numeric"
+                placeholder="เช่น 0891112222"
                 value={formData.phone}
                 onChange={handleChange}
                 className="w-full px-3.5 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] text-[#1A1A1A]"

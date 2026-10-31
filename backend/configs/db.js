@@ -17,7 +17,7 @@ const db = mysql.createPool({
     dateStrings: true ,
     timezone: '+07:00'
 });
-// ② ทุก connection ใหม่ใน pool ให้ตั้ง session เป็นเวลาไทย → NOW() / CURRENT_TIMESTAMP ถูก
+// ทุก connection ใหม่ใน pool ให้ตั้ง session เป็นเวลาไทย → NOW() / CURRENT_TIMESTAMP ถูก
 db.on('connection', (connection) => {
     connection.query("SET time_zone = '+07:00'");
 });

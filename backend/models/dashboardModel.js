@@ -7,8 +7,13 @@ const findTotal_revenue = (callback) => {
     const sql = 
     `
         SELECT 
+        -- [คำนวณยอดขาย] จำนวนสินค้า × ราคาขาย แล้วรวมทั้งหมด
             SUM(item.quantity * item.unit_price) AS today_total_amount,
+
+            -- [คำนวณกำไร] จำนวนสินค้า × (ราคาขาย - ต้นทุน)
+            -- แล้วรวมกำไรของสินค้าทุกรายการ
             SUM(item.quantity * (item.unit_price - item.cost_price)) AS today_total_profit
+        
         FROM order_fulfillment_log f
         JOIN orders o ON f.order_id = o.order_id
         CROSS JOIN JSON_TABLE(
@@ -19,6 +24,8 @@ const findTotal_revenue = (callback) => {
                 cost_price DECIMAL(10,2) PATH '$.cost_price'
             )
         ) AS item
+        -- เลือกเฉพาะรายการที่ส่งสำเร็จและส่งในวันนี้
+
         WHERE f.delivery_date >= CURDATE() 
         AND f.delivery_date < CURDATE() + INTERVAL 1 DAY
         AND o.delivery_status = 'delivered';
@@ -27,17 +34,18 @@ const findTotal_revenue = (callback) => {
 }
 
 
-
+// 2. นับจำนวนออเดอร์ที่สร้างในวันนี้
 const findTotal_orders = (callback) => {
 
     const sql = 
-    `
+    ` -- [คำนวณ] COUNT ใช้นับจำนวนออเดอร์
         SELECT count(order_id) as count_order  
-            FROM orders WHERE DATE(order_date) = CURDATE();
+            FROM orders WHERE DATE(order_date) = CURDATE(); -- กรองเฉพาะออเดอร์ที่สร้างวันนี้
     `
     db.query(sql , callback)
 }
 
+// 3. นับจำนวนออเดอร์แยกตามสถานะ
 const findOrder_status = (callback) => {
 
     const sql = 
@@ -54,8 +62,11 @@ const findOrder_status = (callback) => {
     db.query(sql , callback)
 }
 
+// 4. คำนวณยอดขาย ต้นทุน และกำไรแยกตามเดือน
 const yearly_revenue_chart = (callback) => {
-    const sql = `
+    const sql = ` -- [คำนวณ] รวมจำนวนสินค้า × ราคาขาย
+                -- [คำนวณ] รวมจำนวนสินค้า × ต้นทุนจากตาราง products
+                -- [คำนวณ] รวมจำนวนสินค้า × (ราคาขาย - ต้นทุน)
             SELECT
                 DATE_FORMAT(f.delivery_date, '%Y-%m') AS sale_month,
                 COALESCE(SUM(item.quantity * item.unit_price), 0) AS total_revenue,
@@ -82,13 +93,14 @@ const yearly_revenue_chart = (callback) => {
 };
 
 const findTotal_count = (callback) => {
-
+    //  [คำนวณ] COUNT นับจำนวนสินค้าที่ตรงกับเงื่อนไข
     const sql = 
     `
         select count(product_id) as total_count from products where stock_qty <= 10
     `
     db.query(sql , callback)
 }
+// 6. ดึงรายละเอียดสินค้าที่มีสต็อกไม่เกิน 10 หน่วย
 const findItem = (callback) => {
 
     const sql = 
@@ -99,12 +111,13 @@ const findItem = (callback) => {
 }
 
 // dashboard 2
-
+// สรุปรายได้ต่อเดือน
 const findmonthly_summary = (year, month, callback) => {
 
     const sql = 
     `
         SELECT 
+        
             COALESCE(SUM(item.quantity * item.unit_price), 0) AS total_revenue,
             COALESCE(SUM(item.quantity * (item.unit_price - item.cost_price)), 0) AS total_profit,
             COUNT(ofl.order_id) AS total_delivered_orders
@@ -120,13 +133,13 @@ const findmonthly_summary = (year, month, callback) => {
             )
         ) AS item
         WHERE o.delivery_status = 'delivered'
-          AND YEAR(ofl.delivery_date) = ?
-          AND MONTH(ofl.delivery_date) = ?
+        AND YEAR(ofl.delivery_date) = ?
+        AND MONTH(ofl.delivery_date) = ?
     `;
     
     db.query(sql, [year, month], callback);
 };
-
+// สรุปรายได้ต่อสัปดาห์
 const findWeeklyBreakdown = (year, month, callback) => {
     const sql = `
         SELECT 
@@ -157,8 +170,8 @@ const findWeeklyBreakdown = (year, month, callback) => {
                 )
             ) AS item
             WHERE o.delivery_status = 'delivered'
-              AND YEAR(f.delivery_date) = ?
-              AND MONTH(f.delivery_date) = ?
+            AND YEAR(f.delivery_date) = ?
+            AND MONTH(f.delivery_date) = ?
         ) AS sub
         GROUP BY week_num_raw
         ORDER BY week_num_raw ASC;
@@ -166,7 +179,7 @@ const findWeeklyBreakdown = (year, month, callback) => {
     
     db.query(sql, [year, month], callback);
 };
-
+// สินค้าขายดี เอา 3 อันดับแรก
 const findBestSellers = (year, month, callback) => {
     const sql = `
         SELECT 
@@ -195,7 +208,7 @@ const findBestSellers = (year, month, callback) => {
     `;
     db.query(sql, [year, month], callback);
 };
-
+// สินนค้าขายไม่ดี 3 อันดับแรก
 const findWorstSellers = (year, month, callback) => {
     const sql = `
         SELECT 
@@ -227,6 +240,7 @@ const findWorstSellers = (year, month, callback) => {
     db.query(sql, [year, month], callback);
 };
 
+//ประวัติการจัดส่งที่ส่งสำเร็จ
 const findDeliveredHistory = (year, month, callback) => {
     const sql = `
         SELECT 
