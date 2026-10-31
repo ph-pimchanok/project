@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useOrder } from '../hook/useOrder'; // ปรับ Path ตามโครงสร้างโฟลเดอร์จริง
 import OrderSlideOver from '../OrderSlideOver'; // อัปเดต Path ชี้ไปที่ features ใหม่
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   Plus,
+  Trash2,
   Loader2,
   AlertCircle,
   Search,
@@ -13,81 +14,78 @@ import {
   UserCheck,
   PackageCheck,
   Pencil,
-  XCircle,
-  RotateCcw,
+  XCircle
 } from "lucide-react";
 
 export default function Order() {
-  const {
-    data: orders = [],
-    loading,
-    error,
-    createOrder,
-    updateOrderItems,
-    refetch,
-    cancelOrder,
-    deleteOrderItem,
-  } = useOrder();
+  const { data: orders = [], loading, error, createOrder, updateOrderItems, refetch, cancelOrder, deleteOrderItem } = useOrder();
 
   // State สำหรับ SlideOver & Modal Mode (เพิ่ม/ดูรายละเอียดออเดอร์)
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectItemId, setSelectItemId] = useState(null);
 
   // State สำหรับ Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleSaveOrder = async (payload) => {
+const handleSaveOrder = async (payload) => {
     console.log("Payload to save:", payload);
 
     try {
-      if (selectedOrder) {
-        const itemsToUpdate = payload.items || payload;
-        await updateOrderItems(selectedOrder.order_id, itemsToUpdate);
-        toast.success("อัปเดตรายการสินค้าสำเร็จ!");
-      } else {
-        const result = await createOrder(payload);
+        if (selectedOrder) {
+            const itemsToUpdate = payload.items || payload;
+            await updateOrderItems(selectedOrder.order_id, itemsToUpdate);
+            toast.success("อัปเดตรายการสินค้าสำเร็จ!");
+        } else {
+            const result = await createOrder(payload);
 
-        if (result?.success === false) {
-          if (result.insufficient_items?.length) {
-            const names = result.insufficient_items
-              .map((i) => `#${i.product_id} (ขอ ${i.requested}, เหลือ ${i.available})`)
-              .join(", ");
-            toast.error(`สินค้าไม่พอ: ${names}`);
-          } else {
-            toast.error(result.message || "สร้างออเดอร์ไม่สำเร็จ");
-          }
-          await refetch();
-          return;
+            if (result?.success === false) {
+                if (result.insufficient_items?.length) {
+                    const names = result.insufficient_items
+                        .map((i) => `#${i.product_id} (ขอ ${i.requested}, เหลือ ${i.available})`)
+                        .join(", ");
+                    toast.error(`สินค้าไม่พอ: ${names}`);
+                } else {
+                    toast.error(result.message || "สร้างออเดอร์ไม่สำเร็จ");
+                }
+                await refetch();
+                return;
+            }
+
+            toast.success("สร้างออเดอร์ใหม่สำเร็จ!");
         }
 
-        toast.success("สร้างออเดอร์ใหม่สำเร็จ!");
-      }
+        refetch();
+        setIsSlideOverOpen(false);
 
-      refetch();
-      setIsSlideOverOpen(false);
     } catch (err) {
-      console.error("เกิดข้อผิดพลาดในการบันทึกออเดอร์:", err);
-      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        console.error("เกิดข้อผิดพลาดในการบันทึกออเดอร์:", err);
+        toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     }
   };
 
-  const filteredOrders = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return orders.filter((item) =>
-      item.customer_name?.toLowerCase().includes(term) ||
-      item.employee_name?.toLowerCase().includes(term) ||
-      String(item.order_id).includes(searchTerm)
-    );
+  useEffect(() => {
+    if(error) {
+      refetch();
+    }
+  }, [error]);
+
+  const filteredOrders = useMemo(() => { 
+    return orders.filter((item) => {
+      const matchesSearch = 
+        item.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(item.order_id).includes(searchTerm);
+      return matchesSearch;
+    });
   }, [orders, searchTerm]);
 
-  const stats = useMemo(() => {
+const stats = useMemo(() => {
+
     const activeOrders = orders.filter(order => order.delivery_status !== 'cancelled');
 
     const totalCount = activeOrders.length;
-    const totalRevenue = activeOrders.reduce(
-      (sum, order) => sum + (Number(order.total_amount) || 0),
-      0
-    );
+    const totalRevenue = activeOrders.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0);
     const totalItemsCount = activeOrders.reduce((sum, order) => {
       const items = order.items || [];
       return sum + items.reduce((iSum, item) => iSum + (Number(item.quantity) || 0), 0);
@@ -111,24 +109,24 @@ export default function Order() {
   };
 
   const handleDeleteOrderItem = async (itemId) => {
-    if (!itemId) return;
+    if(!itemId) { return; }
 
-    if (window.confirm(`คุณต้องการลบรายการสินค้า ID: ${itemId} ใช่หรือไม่?`)) {
-      try {
+    if(window.confirm(`คุณต้องการลบรายการสินค้า ID: ${itemId} ใช่หรือไม่?`)) {
+       try {
         await deleteOrderItem(itemId);
         await refetch();
         toast.success(`ลบรายการสินค้า #${itemId} สำเร็จ`);
-      } catch (err) {
+       } catch(err) {
         console.error(err);
         toast.error("ไม่สามารถลบรายการสินค้าได้");
-      }
+       }
     }
   };
 
   return (
     <div className="max-w-7xl max-h-screen min-h-screen p-6 mx-auto space-y-6 bg-gray-50/30 text-gray-800 overflow-hidden">
       <Toaster position="top-center" reverseOrder={false} />
-
+      
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -214,16 +212,8 @@ export default function Order() {
             <Loader2 className="w-5 h-5 animate-spin" /> กำลังโหลดข้อมูลคำสั่งซื้อ...
           </div>
         ) : error ? (
-          <div className="p-12 text-center text-rose-500 text-sm flex flex-col items-center justify-center gap-3">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" /> เกิดข้อผิดพลาด: {error}
-            </div>
-            <button
-              onClick={refetch}
-              className="px-4 py-2 bg-[#0B192C] hover:bg-[#1E3E62] text-white text-sm rounded-lg flex items-center gap-2 cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4" /> ลองใหม่
-            </button>
+          <div className="p-12 text-center text-rose-500 text-sm flex items-center justify-center gap-2">
+            <AlertCircle className="w-5 h-5" /> เกิดข้อผิดพลาด: {error}
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className="p-12 text-center text-gray-400 text-sm">ไม่พบรายการคำสั่งซื้อที่ค้นหา</div>
@@ -250,9 +240,13 @@ export default function Order() {
 
                   return (
                     <tr key={`${order.order_id}-${index}`} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-3.5 px-4 text-gray-600">{index + 1}</td>
-
-                      <td className="py-3.5 px-4 font-semibold text-slate-800">#{order.order_id}</td>
+                      <td className="py-3.5 px-4 text-gray-600">
+                        {index + 1}
+                      </td>
+                      
+                      <td className="py-3.5 px-4 font-semibold text-slate-800">
+                        #{order.order_id}
+                      </td>
 
                       <td className="py-3.5 px-4 font-medium text-gray-700 flex items-center gap-2">
                         <UserCheck className="w-4 h-4 text-blue-500" />
@@ -294,16 +288,16 @@ export default function Order() {
                             <Pencil className="w-4 h-4" />
                           </button>
 
-                          {/* แสดงปุ่มยกเลิกเฉพาะออเดอร์ที่ยังไม่ถูกยกเลิกและยังไม่ส่ง */}
-                          {!isCancelled && !isDelivered && (
-                            <button
-                              onClick={() => handleCancelOrder(order.order_id)}
-                              className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                              title="ยกเลิกออเดอร์"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          )}
+                          {/* แสดงปุ่มยกเลิก (XCircle) เฉพาะเมื่อสถานะยังไม่เป็น cancelled */}
+                            {!isCancelled && !isDelivered && (
+                              <button
+                                onClick={() => handleCancelOrder(order.order_id)}
+                                className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                                title="ยกเลิกออเดอร์"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            )}
                         </div>
                       </td>
                     </tr>
