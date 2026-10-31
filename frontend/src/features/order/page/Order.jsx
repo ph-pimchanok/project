@@ -14,9 +14,6 @@ import {
   UserCheck,
   PackageCheck,
   Pencil,
-  Clock,
-  Truck,
-  CheckCircle2,
   XCircle
 } from "lucide-react";
 
@@ -31,7 +28,7 @@ export default function Order() {
   // State สำหรับ Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleSaveOrder = async (payload) => {
+const handleSaveOrder = async (payload) => {
     console.log("Payload to save:", payload);
 
     try {
@@ -48,12 +45,10 @@ export default function Order() {
                         .map((i) => `#${i.product_id} (ขอ ${i.requested}, เหลือ ${i.available})`)
                         .join(", ");
                     toast.error(`สินค้าไม่พอ: ${names}`);
-
-                    await refetch();
                 } else {
                     toast.error(result.message || "สร้างออเดอร์ไม่สำเร็จ");
-                    await refetch();
                 }
+                await refetch();
                 return;
             }
 
@@ -242,6 +237,7 @@ const stats = useMemo(() => {
                   const itemsCount = (order.items || []).length;
                   const isCancelled = order.delivery_status === 'cancelled';
                   const isDelivered = order.delivery_status === 'delivered';
+
                   return (
                     <tr key={`${order.order_id}-${index}`} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-3.5 px-4 text-gray-600">

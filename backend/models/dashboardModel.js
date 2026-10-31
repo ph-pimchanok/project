@@ -7,11 +7,9 @@ const findTotal_revenue = (callback) => {
     const sql = 
     `
         SELECT 
-        -- [คำนวณยอดขาย] จำนวนสินค้า × ราคาขาย แล้วรวมทั้งหมด
             SUM(item.quantity * item.unit_price) AS today_total_amount,
 
-            -- [คำนวณกำไร] จำนวนสินค้า × (ราคาขาย - ต้นทุน)
-            -- แล้วรวมกำไรของสินค้าทุกรายการ
+
             SUM(item.quantity * (item.unit_price - item.cost_price)) AS today_total_profit
         
         FROM order_fulfillment_log f
@@ -64,9 +62,7 @@ const findOrder_status = (callback) => {
 
 // 4. คำนวณยอดขาย ต้นทุน และกำไรแยกตามเดือน
 const yearly_revenue_chart = (callback) => {
-    const sql = ` -- [คำนวณ] รวมจำนวนสินค้า × ราคาขาย
-                -- [คำนวณ] รวมจำนวนสินค้า × ต้นทุนจากตาราง products
-                -- [คำนวณ] รวมจำนวนสินค้า × (ราคาขาย - ต้นทุน)
+    const sql = ` 
             SELECT
                 DATE_FORMAT(f.delivery_date, '%Y-%m') AS sale_month,
                 COALESCE(SUM(item.quantity * item.unit_price), 0) AS total_revenue,
