@@ -127,7 +127,7 @@ const decreaseStock = (product_id, quantity, callback) => {
     });
 };
 // ที่แก้เพิ่มสต้อกซ้ำ
-const findDuplicateProduct = (productdata, callack) => {
+const findDuplicateProduct = (productdata, callback) => {
     const sql = `
         SELECT product_id FROM products
         WHERE product_name = ? AND cost_price = ? AND current_price = ?

@@ -17,7 +17,7 @@ const findAllProduct =async()=>{
 
 const createProduct = async(productdata)=>{
     return new Promise((success,fail)=>{
-        productModel.findDuplicateProduct(productdata,(error,results)=>{
+        productModel.findDuplicateProduct(productdata,(error,rows)=>{
             if(error){return fail(error)}
             // ที่เพิ่มมาแก้สต้อคซ้ำ
             if (rows.length > 0) {
