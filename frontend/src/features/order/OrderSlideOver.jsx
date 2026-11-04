@@ -168,7 +168,7 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
         return {
           ...(i.item_id ? { item_id: Number(i.item_id) } : {}),
           product_id: Number(i.product_id) || 0,
-          quantity: Number(i.quantity) || 1,
+          quantity: Number(Number(i.quantity).toFixed(1)),
           unit_price: selectedProduct
             ? Number(selectedProduct.current_price || 0)
             : Number(i.unit_price) || 0,
@@ -332,8 +332,8 @@ export default function OrderSlideOver({ isOpen, onClose, onSave, initialData, o
                         </label>
                         <input
                           type="number"
-                          step="1"
-                          min="1"
+                          step="0.1"
+                          min="0.1"
                           value={item.quantity}
                           onChange={(e) =>
                             handleItemChange(index, "quantity", e.target.value)
