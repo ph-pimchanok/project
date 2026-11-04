@@ -19,11 +19,18 @@ const createProduct = async(productdata)=>{
     return new Promise((success,fail)=>{
         productModel.createProduct(productdata,(error,results)=>{
             if(error){return fail(error)}
+            // ที่เพิ่มมาแก้สต้อคซ้ำ
+            if (rows.length > 0) {
+                return fail(new ApiError(409, "มีสินค้านี้ที่ราคาทุนและราคาขายเดียวกันอยู่แล้ว"));
+            }
+            productModel.createProduct(productdata, (error, results) => {
+                if (error) { return fail(error) }
 
-            success({
-                success:true,
-                message:"Product created Successfully",
-                data:results
+                success({
+                    success:true,
+                    message:"Product created Successfully",
+                    data:results
+                })
             })
         })
     })

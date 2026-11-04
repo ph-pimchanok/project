@@ -126,7 +126,14 @@ const decreaseStock = (product_id, quantity, callback) => {
         callback(null, results);
     });
 };
-
+// ที่แก้เพิ่มสต้อกซ้ำ
+const findDuplicateProduct = (productdata, callback) => {
+    const sql = `
+        SELECT product_id FROM products
+        WHERE product_name = ? AND cost_price = ? AND current_price = ?
+    `;
+    db.query(sql, [productdata.product_name, productdata.cost_price, productdata.current_price], callback);
+}
 module.exports = {
     findAllProduct,
     createProduct,
@@ -136,5 +143,6 @@ module.exports = {
     updateStock,
     increaseStock,
     decreaseStock,
-    findProductById
+    findProductById,
+    findDuplicateProduct
 }
