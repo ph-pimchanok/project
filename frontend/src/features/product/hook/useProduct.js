@@ -43,7 +43,7 @@ export const useProduct = () => {
             await fetchingData(); // โหลดข้อมูลใหม่หลังเพิ่มสำเร็จ
             return response.data;
         } catch (err) {
-            setError(err.response?.data?.message || err.message);
+            alert(err.response?.data?.message || err.message);
             throw err; // ส่ง error ออกไปเผื่อ component นำไปจัดการต่อ (เช่น แสดง Alert)
         } finally {
             setLoading(false);
