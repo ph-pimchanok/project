@@ -14,7 +14,7 @@ export default defineConfig({
         enabled: true,
       },
       manifest: {
-        name: 'Gas Driver Manager',
+        name: 'Gas Management System',
         short_name: 'GasDriver',
         description: 'ระบบจัดการออเดอร์และจัดส่งแก๊ส',
         theme_color: '#1A1A1A',
